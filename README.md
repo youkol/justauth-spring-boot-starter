@@ -16,7 +16,7 @@
 
 ```xml
 <dependency>
-  <groupId>com.youkol.support.justauth</groupId>
+  <groupId>com.youkol.support</groupId>
   <artifactId>justauth-spring-boot-starter</artifactId>
   <version>${justauth-spring-boot.version}</version>
 </dependency>
