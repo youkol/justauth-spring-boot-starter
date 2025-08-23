@@ -15,12 +15,13 @@
  */
 package com.youkol.support.justauth.support.config;
 
+import com.youkol.support.justauth.support.request.AuthWeChatMiniAppRequest;
+
 import me.zhyd.oauth.config.AuthDefaultSource;
 import me.zhyd.oauth.config.AuthSource;
 import me.zhyd.oauth.enums.AuthResponseStatus;
 import me.zhyd.oauth.exception.AuthException;
 import me.zhyd.oauth.request.AuthDefaultRequest;
-import com.youkol.support.justauth.support.request.AuthWeChatMiniAppRequest;
 
 /**
  * {@link AuthSource} 的扩展实现，{@link AuthDefaultSource}为JustAuth提供的实现
@@ -31,6 +32,10 @@ import com.youkol.support.justauth.support.request.AuthWeChatMiniAppRequest;
  */
 public enum AuthExtendSource implements AuthSource {
 
+    /**
+     * @deprecated 在JustAuth 1.16.7 版本中已添加微信小程序登录的支持
+     */
+    @Deprecated
     WECHAT_MINI_APP {
 
         @Override

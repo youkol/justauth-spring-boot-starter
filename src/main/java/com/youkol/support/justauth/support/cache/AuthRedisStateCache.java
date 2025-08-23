@@ -21,9 +21,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
+import com.youkol.support.justauth.autoconfigure.JustAuthCacheProperties;
+
 import me.zhyd.oauth.cache.AuthDefaultStateCache;
 import me.zhyd.oauth.cache.AuthStateCache;
-import com.youkol.support.justauth.autoconfigure.JustAuthCacheProperties;
 
 /**
  * A redis implementation of {@link AuthStateCache}
@@ -61,11 +62,7 @@ public class AuthRedisStateCache implements AuthStateCache {
     @Override
     public boolean containsKey(String key) {
         Long expire = this.redisTemplate.getExpire(this.getCacheKey(key), TimeUnit.MILLISECONDS);
-        if (expire == null) {
-            return false;
-        }
-
-        return expire > 0L;
+        return (expire != null && expire > 0L);
     }
 
     @NonNull

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,7 +36,6 @@ import org.springframework.context.annotation.Configuration;
 import com.youkol.support.justauth.support.cache.AuthRedisStateCache;
 import com.youkol.support.justauth.support.config.AuthConfigRepository;
 import com.youkol.support.justauth.support.request.AuthRequestFactory;
-import com.youkol.support.justauth.support.request.AuthWeChatMiniAppRequest;
 
 import me.zhyd.oauth.cache.AuthDefaultStateCache;
 import me.zhyd.oauth.cache.AuthStateCache;
@@ -47,6 +47,7 @@ import me.zhyd.oauth.model.AuthToken;
 import me.zhyd.oauth.model.AuthUser;
 import me.zhyd.oauth.request.AuthDefaultRequest;
 import me.zhyd.oauth.request.AuthRequest;
+import me.zhyd.oauth.request.AuthWechatMiniProgramRequest;
 
 /**
  *
@@ -67,16 +68,28 @@ class JustAuthAutoConfigurationTests {
 
     @Test
     void justAuthEnabled() {
-        this.contextRunner.withPropertyValues("youkol.justauth.enabled:true").run(context -> {
-            assertThat(context).getBeans(AuthRequestFactory.class).hasSize(1);
-        });
+        this.contextRunner.withPropertyValues("youkol.justauth.enabled:true")
+                .run(context -> {
+                    assertThat(context).getBeans(AuthRequestFactory.class).hasSize(1);
+                });
     }
 
     @Test
     void justAuthDisabled() {
-        this.contextRunner.withPropertyValues("youkol.justauth.enabled:false").run(context -> {
-            assertThat(context).getBeans(AuthRequestFactory.class).isEmpty();
-        });
+        this.contextRunner.withPropertyValues("youkol.justauth.enabled:false")
+                .run(context -> {
+                    assertThat(context).getBeans(AuthRequestFactory.class).isEmpty();
+                });
+    }
+
+    @Test
+    void justAuthOnWithoutJustAuth() {
+        this.contextRunner.withClassLoader(new FilteredClassLoader("me.zhyd.oauth"))
+                .run(context -> {
+                    assertThat(context).getBean(JustAuthAutoConfiguration.class).isNull();
+                    assertThat(context).getBeans(AuthRequestFactory.class).isEmpty();
+                    assertThat(context).getBean(AuthConfigRepository.class).isNull();
+                });
     }
 
     @Test
@@ -92,13 +105,17 @@ class JustAuthAutoConfigurationTests {
                         "youkol.justauth.type.SIMPLE_CLASS.client-secret:simple-class-client-secret",
                         "youkol.justauth.type.SIMPLE_CLASS.redirect-uri:http://test.justauth/test/oauth/simple_class/callback")
                 .run(context -> {
-                    AuthRequest authRequest = context.getBean(AuthRequestFactory.class).getAuthRequest("custom1");
+                    AuthRequestFactory authRequestFactory = context.getBean(AuthRequestFactory.class);
+                    AuthRequest authRequest = authRequestFactory.getAuthRequest("custom1");
                     assertThat(authRequest).isNotNull();
                     assertThat(authRequest).isInstanceOf(Custom1AuthRequest.class);
 
-                    authRequest = context.getBean(AuthRequestFactory.class).getAuthRequest("simple_class");
+                    authRequest = authRequestFactory.getAuthRequest("simple_class");
                     assertThat(authRequest).isNotNull();
                     assertThat(authRequest).isInstanceOf(SimpleClassAuthRequest.class);
+
+                    assertThat(authRequestFactory.getConfiguredOAuthNames()).size().isEqualTo(2);
+                    assertThat(authRequestFactory.getConfiguredOAuthNames()).contains("CUSTOM1", "SIMPLE_CLASS");
                 });
     }
 
@@ -132,20 +149,19 @@ class JustAuthAutoConfigurationTests {
                         "youkol.justauth.type.CUSTOM_NAME.client-id:custom_name-client-id",
                         "youkol.justauth.type.CUSTOM_NAME.client-secret:custom_name-client-secret",
                         "youkol.justauth.type.CUSTOM_NAME.redirect-uri:http://test.justauth/test/oauth/custom_name/callback")
-                .run(context -> {
-                    AuthRequestFactory authRequestFactory = context.getBean(AuthRequestFactory.class);
-                    assertThatThrownBy(() -> authRequestFactory.getAuthRequest("custom_name"))
-                            .isInstanceOf(AuthException.class)
-                            .hasMessageContaining(CustomNameAuthSource.class.getCanonicalName())
-                            .hasMessageContaining("must have default no-argument constructor");
-                });
+                .run(context -> assertThatThrownBy(() -> context.getBean(AuthRequestFactory.class))
+                        .hasCauseInstanceOf(BeanCreationException.class)
+                        .hasRootCauseInstanceOf(NoSuchMethodException.class)
+                        .hasStackTraceContaining(CustomNameAuthSource.class.getCanonicalName())
+                        .hasStackTraceContaining("must have default no-argument constructor"));
     }
 
     @Test
     void justAuthUseDefaultStateCache() {
         this.contextRunner
                 .run(context -> {
-                    assertThat(context).getBean(AuthStateCache.class).isInstanceOf(AuthDefaultStateCache.class);
+                    assertThat(context).getBean(AuthStateCache.class)
+                            .isInstanceOf(AuthDefaultStateCache.class);
                 });
     }
 
@@ -194,19 +210,21 @@ class JustAuthAutoConfigurationTests {
         this.contextRunner
                 .withPropertyValues("youkol.justauth.http-config.hostname:192.168.108.1",
                         "youkol.justauth.http-config.port:10080",
-                        "youkol.justauth.type.WECHAT_MINI_APP.client-id:WECHAT_MINI_APP",
-                        "youkol.justauth.type.WECHAT_MINI_APP.client-secret:WECHAT_MINI_APP",
-                        "youkol.justauth.type.WECHAT_MINI_APP.redirect-uri:http://test.justauth/test/oauth/wechat_mini_app/callback")
+                        "youkol.justauth.type.WECHAT_MINI_PROGRAM.client-id:WECHAT_MINI_PROGRAM",
+                        "youkol.justauth.type.WECHAT_MINI_PROGRAM.client-secret:WECHAT_MINI_PROGRAM",
+                        "youkol.justauth.type.WECHAT_MINI_PROGRAM.redirect-uri:http://test.justauth/test/oauth/wechat_mini_program/callback")
                 .run(context -> {
                     AuthConfig authConfig = context.getBean(AuthConfigRepository.class)
-                            .getAuthConfigById("wechat_mini_app");
+                            .getAuthConfigById("wechat_mini_program");
                     assertThat(authConfig.getHttpConfig()).isNotNull();
-                    assertThat(authConfig.getHttpConfig().getProxy().address()).isInstanceOf(InetSocketAddress.class);
+                    assertThat(authConfig.getHttpConfig().getProxy().address())
+                            .isInstanceOf(InetSocketAddress.class);
                     InetSocketAddress address = (InetSocketAddress) authConfig.getHttpConfig().getProxy().address();
                     assertThat(address.getHostName()).isEqualTo("192.168.108.1");
                     assertThat(address.getPort()).isEqualTo(10080);
-                    assertThat(context.getBean(AuthRequestFactory.class).getAuthRequest("wechat_mini_app"))
-                            .isInstanceOf(AuthWeChatMiniAppRequest.class);
+                    assertThat(context.getBean(AuthRequestFactory.class)
+                            .getAuthRequest("wechat_mini_program"))
+                            .isInstanceOf(AuthWechatMiniProgramRequest.class);
                 });
     }
 
@@ -215,21 +233,22 @@ class JustAuthAutoConfigurationTests {
         this.contextRunner
                 .withPropertyValues("youkol.justauth.http-config.hostname:192.168.108.1",
                         "youkol.justauth.http-config.port:10080",
-                        "youkol.justauth.http-config.proxy.WECHAT_MINI_APP.hostname:192.168.108.2",
-                        "youkol.justauth.http-config.proxy.WECHAT_MINI_APP.port:10081",
-                        "youkol.justauth.type.WECHAT_MINI_APP.client-id:WECHAT_MINI_APP",
-                        "youkol.justauth.type.WECHAT_MINI_APP.client-secret:WECHAT_MINI_APP",
-                        "youkol.justauth.type.WECHAT_MINI_APP.redirect-uri:http://test.justauth/test/oauth/WECHAT_MINI_APP/callback")
+                        "youkol.justauth.http-config.proxy.WECHAT_MINI_PROGRAM.hostname:192.168.108.2",
+                        "youkol.justauth.http-config.proxy.WECHAT_MINI_PROGRAM.port:10081",
+                        "youkol.justauth.type.WECHAT_MINI_PROGRAM.client-id:WECHAT_MINI_PROGRAM",
+                        "youkol.justauth.type.WECHAT_MINI_PROGRAM.client-secret:WECHAT_MINI_PROGRAM",
+                        "youkol.justauth.type.WECHAT_MINI_PROGRAM.redirect-uri:http://test.justauth/test/oauth/WECHAT_MINI_PROGRAM/callback")
                 .run(context -> {
                     AuthConfig authConfig = context.getBean(AuthConfigRepository.class)
-                            .getAuthConfigById("wechat_mini_app");
+                            .getAuthConfigById("wechat_mini_program");
                     assertThat(authConfig.getHttpConfig()).isNotNull();
-                    assertThat(authConfig.getHttpConfig().getProxy().address()).isInstanceOf(InetSocketAddress.class);
+                    assertThat(authConfig.getHttpConfig().getProxy().address())
+                            .isInstanceOf(InetSocketAddress.class);
                     InetSocketAddress address = (InetSocketAddress) authConfig.getHttpConfig().getProxy().address();
                     assertThat(address.getHostName()).isEqualTo("192.168.108.2");
                     assertThat(address.getPort()).isEqualTo(10081);
-                    assertThat(context.getBean(AuthRequestFactory.class).getAuthRequest("WECHAT_MINI_APP"))
-                            .isInstanceOf(AuthWeChatMiniAppRequest.class);
+                    assertThat(context.getBean(AuthRequestFactory.class).getAuthRequest("WECHAT_MINI_PROGRAM"))
+                            .isInstanceOf(AuthWechatMiniProgramRequest.class);
                 });
     }
 
@@ -255,7 +274,7 @@ class JustAuthAutoConfigurationTests {
         }
 
         @Override
-        protected AuthToken getAccessToken(AuthCallback authCallback) {
+        public AuthToken getAccessToken(AuthCallback authCallback) {
             return AuthToken.builder()
                     .openId("openId")
                     .unionId("unionId")
@@ -263,7 +282,7 @@ class JustAuthAutoConfigurationTests {
         }
 
         @Override
-        protected AuthUser getUserInfo(AuthToken authToken) {
+        public AuthUser getUserInfo(AuthToken authToken) {
             return AuthUser.builder()
                     .username("")
                     .nickname("")
@@ -287,7 +306,7 @@ class JustAuthAutoConfigurationTests {
         }
 
         @Override
-        protected AuthToken getAccessToken(AuthCallback authCallback) {
+        public AuthToken getAccessToken(AuthCallback authCallback) {
             return AuthToken.builder()
                     .openId("openId")
                     .unionId("unionId")
@@ -295,7 +314,7 @@ class JustAuthAutoConfigurationTests {
         }
 
         @Override
-        protected AuthUser getUserInfo(AuthToken authToken) {
+        public AuthUser getUserInfo(AuthToken authToken) {
             return AuthUser.builder()
                     .username("")
                     .nickname("")
@@ -369,7 +388,7 @@ class JustAuthAutoConfigurationTests {
         }
 
         @Override
-        protected AuthToken getAccessToken(AuthCallback authCallback) {
+        public AuthToken getAccessToken(AuthCallback authCallback) {
             return AuthToken.builder()
                     .openId("openId")
                     .unionId("unionId")
@@ -377,7 +396,7 @@ class JustAuthAutoConfigurationTests {
         }
 
         @Override
-        protected AuthUser getUserInfo(AuthToken authToken) {
+        public AuthUser getUserInfo(AuthToken authToken) {
             return AuthUser.builder()
                     .username("")
                     .nickname("")
@@ -534,6 +553,7 @@ class JustAuthAutoConfigurationTests {
         }
     }
 
+    @Configuration(proxyBeanMethods = false)
     public static class CustomAuthStateCacheConfiguration {
 
         @Bean

@@ -15,11 +15,17 @@
  */
 package com.youkol.support.justauth.support.request;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.springframework.util.CollectionUtils;
+
+import com.youkol.support.justauth.autoconfigure.JustAuthProperties;
+import com.youkol.support.justauth.support.config.AuthConfigRepository;
 
 import me.zhyd.oauth.AuthRequestBuilder;
 import me.zhyd.oauth.cache.AuthStateCache;
@@ -27,8 +33,6 @@ import me.zhyd.oauth.config.AuthConfig;
 import me.zhyd.oauth.config.AuthSource;
 import me.zhyd.oauth.exception.AuthException;
 import me.zhyd.oauth.request.AuthRequest;
-import com.youkol.support.justauth.autoconfigure.JustAuthProperties;
-import com.youkol.support.justauth.support.config.AuthConfigRepository;
 
 /**
  * The factory class of {@link AuthRequest}
@@ -42,16 +46,23 @@ public class AuthRequestFactory {
 
     private AuthStateCache authStateCache;
 
-    private List<AuthSource> extendAuthSources = new ArrayList<>();
-
-    private JustAuthProperties properties;
+    private Map<String, AuthSource> extendAuthSources = new ConcurrentHashMap<>();
 
     public AuthRequestFactory(AuthConfigRepository authConfigRepository, AuthStateCache authStateCache,
             List<AuthSource> extendAuthSources, JustAuthProperties properties) {
         this.authConfigRepository = authConfigRepository;
         this.authStateCache = authStateCache;
-        this.extendAuthSources = extendAuthSources;
-        this.properties = properties;
+        if (!CollectionUtils.isEmpty(extendAuthSources)) {
+            extendAuthSources.forEach(this::registerExtendAuthSource);
+        }
+        this.mergeExtendAuthSources(properties);
+    }
+
+    private void mergeExtendAuthSources(JustAuthProperties properties) {
+        properties.getExtendAuthSourceClass()
+                .stream()
+                .flatMap(this::createInstanceFromClass)
+                .forEach(this::registerExtendAuthSource);
     }
 
     /**
@@ -77,7 +88,7 @@ public class AuthRequestFactory {
                 .source(source)
                 .authConfig(this::getAuthConfig)
                 .authStateCache(this.authStateCache)
-                .extendSource(this.mergeExtendAuthSources())
+                .extendSource(this.getExtendAuthSources())
                 .build();
     }
 
@@ -85,17 +96,13 @@ public class AuthRequestFactory {
         return this.authConfigRepository.getAuthConfigById(source);
     }
 
-    private AuthSource[] mergeExtendAuthSources() {
-        Stream<AuthSource> injected = this.extendAuthSources.stream();
-
-        Stream<AuthSource> configured = this.properties.getExtendAuthSourceClass()
+    private AuthSource[] getExtendAuthSources() {
+        return this.extendAuthSources.values()
                 .stream()
-                .flatMap(this::instanceStreamFromClass);
-
-        return Stream.concat(injected, configured).distinct().toArray(AuthSource[]::new);
+                .toArray(AuthSource[]::new);
     }
 
-    private Stream<AuthSource> instanceStreamFromClass(Class<? extends AuthSource> clazz) {
+    private Stream<AuthSource> createInstanceFromClass(Class<? extends AuthSource> clazz) {
         try {
             if (clazz.isEnum()) {
                 return Arrays.stream(clazz.getEnumConstants());
@@ -107,6 +114,14 @@ public class AuthRequestFactory {
                     clazz.getCanonicalName());
             throw new AuthException(message, ex);
         }
+    }
+
+    public void registerExtendAuthSource(AuthSource authSource) {
+        this.extendAuthSources.put(authSource.getName(), authSource);
+    }
+
+    public void unregisterExtendAuthSource(AuthSource authSource) {
+        this.extendAuthSources.remove(authSource.getName());
     }
 
 }

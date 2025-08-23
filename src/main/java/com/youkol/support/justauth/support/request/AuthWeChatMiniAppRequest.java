@@ -25,6 +25,7 @@ import me.zhyd.oauth.model.AuthCallback;
 import me.zhyd.oauth.model.AuthToken;
 import me.zhyd.oauth.model.AuthUser;
 import me.zhyd.oauth.request.AuthDefaultRequest;
+import me.zhyd.oauth.request.AuthWechatMiniProgramRequest;
 import me.zhyd.oauth.utils.UrlBuilder;
 
 /**
@@ -34,10 +35,14 @@ import me.zhyd.oauth.utils.UrlBuilder;
  * https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/login.html</a>
  * </p>
  *
+ * @deprecated replaced by {@link AuthWechatMiniProgramRequest}
+ *             in the version 1.16.7 of justauth
+ *
  * @author jackiea
  * @since 1.0.0
  * @see AuthDefaultRequest
  */
+@Deprecated
 public class AuthWeChatMiniAppRequest extends AuthDefaultRequest {
 
     public AuthWeChatMiniAppRequest(AuthConfig config) {
@@ -49,7 +54,7 @@ public class AuthWeChatMiniAppRequest extends AuthDefaultRequest {
     }
 
     @Override
-    protected AuthToken getAccessToken(AuthCallback authCallback) {
+    public AuthToken getAccessToken(AuthCallback authCallback) {
         String response = this.doGetAuthorizationCode(authCallback.getCode());
         return this.getAuthToken(response);
     }
@@ -59,7 +64,7 @@ public class AuthWeChatMiniAppRequest extends AuthDefaultRequest {
      * 参考地址：https://developers.weixin.qq.com/miniprogram/dev/api/open-api/user-info/wx.getUserProfile.html
      */
     @Override
-    protected AuthUser getUserInfo(AuthToken authToken) {
+    public AuthUser getUserInfo(AuthToken authToken) {
         return AuthUser.builder()
                 .username(null)
                 .nickname(null)

@@ -28,14 +28,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
+import com.youkol.support.justauth.support.config.AuthConfigRepository;
+import com.youkol.support.justauth.support.config.InMemoryAuthConfigRepository;
+import com.youkol.support.justauth.support.request.AuthRequestFactory;
+
 import me.zhyd.oauth.cache.AuthStateCache;
 import me.zhyd.oauth.config.AuthSource;
 import me.zhyd.oauth.request.AuthRequest;
-
-import com.youkol.support.justauth.support.config.AuthConfigRepository;
-import com.youkol.support.justauth.support.config.AuthExtendSource;
-import com.youkol.support.justauth.support.config.InMemoryAuthConfigRepository;
-import com.youkol.support.justauth.support.request.AuthRequestFactory;
 
 /**
  * Auto configuration for JustAuth.
@@ -49,8 +48,6 @@ import com.youkol.support.justauth.support.request.AuthRequestFactory;
 @ConditionalOnProperty(prefix = JustAuthProperties.JUSTAUTH_PREFIX, value = "enabled", matchIfMissing = true)
 @Import({ JustAuthStateCacheConfiguration.class })
 public class JustAuthAutoConfiguration {
-
-    public static final String AUTH_SOURCE_WECHAT_MINI_APP = "wechatMiniAppAuthSource";
 
     @Bean
     @ConditionalOnMissingBean
@@ -72,9 +69,4 @@ public class JustAuthAutoConfiguration {
         return new InMemoryAuthConfigRepository(properties.getAuthConfigs());
     }
 
-    @Bean(name = AUTH_SOURCE_WECHAT_MINI_APP)
-    @ConditionalOnMissingBean(name = AUTH_SOURCE_WECHAT_MINI_APP)
-    public AuthSource wechatMiniAppAuthSource() {
-        return AuthExtendSource.WECHAT_MINI_APP;
-    }
 }
