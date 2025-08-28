@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 the original author or authors.
+ * Copyright (C) 2024-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ public interface AuthConfigRepository {
     /**
      * 返回所有可用的{@link AuthConfig}, 否则返回{@code null}
      *
-     * @return
+     * @return 返回所有可用的{@link AuthConfig}, 否则返回{@code null}
      */
     Map<String, AuthConfig> listAuthConfig();
 

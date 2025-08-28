@@ -2,17 +2,29 @@
 
 > Spring boot starter for JustAuth（Spring Boot 集成 JustAuth）
 
+- [1. JustAuth 开箱即用的整合第三方登录的开源组件](#1-justauth-开箱即用的整合第三方登录的开源组件)
+- [2. 快速开始](#2-快速开始)
+  - [2.1. 基础配置](#21-基础配置)
+  - [2.2. 缓存配置](#22-缓存配置)
+    - [2.2.1. 默认缓存实现](#221-默认缓存实现)
+    - [2.2.2. 基于Redis的缓存实现](#222-基于redis的缓存实现)
+    - [2.2.3. 自定义缓存实现](#223-自定义缓存实现)
+  - [2.3. 自定义第三方平台](#23-自定义第三方平台)
+  - [2.3.1. 枚举类配置方式](#231-枚举类配置方式)
+  - [2.3.2. 普通类配置方式](#232-普通类配置方式)
+  - [2.4. 数据库中获取第三方平台的配置信息](#24-数据库中获取第三方平台的配置信息)
+
 ## 1. JustAuth 开箱即用的整合第三方登录的开源组件
 
-* JustAuth 官方文档: <https://www.justauth.cn>
-* JustAuth Gitee: <https://gitee.com/justauth>
-* JustAuth Github: <https://github.com/justauth/justauth>
+- JustAuth 官方文档: <https://www.justauth.cn>
+- JustAuth Gitee: <https://gitee.com/justauth>
+- JustAuth Github: <https://github.com/justauth/justauth>
 
 ## 2. 快速开始
 
 ### 2.1. 基础配置
 
-* Maven依赖
+- Maven依赖
 
 ```xml
 <dependency>
@@ -22,7 +34,7 @@
 </dependency>
 ```
 
-* spring-boot配置 application.yml 中添加相关配置信息
+- spring-boot配置 application.yml 中添加相关配置信息
 
 ```yaml
 youkol:
@@ -47,7 +59,7 @@ youkol:
       type: default
 ```
 
-* 使用示例
+- 使用示例
 
 ```java
 @RestController
@@ -411,5 +423,3 @@ public class AuthConfigRepositoryConfiguration {
     }
 }
 ```
-
-## 3. 源码部分
